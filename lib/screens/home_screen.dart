@@ -78,13 +78,14 @@ class _HomeScreenState extends State<HomeScreen> {
       body: ValueListenableBuilder<Box<NoteModel>>(
         valueListenable: box.listenable(),
         builder: (context, notesBox, _) {
-          final allKeys = notesBox.keys.toList();
-
-          // Build list of entries (key -> note) to avoid ordering mismatches
+          // Build entries by pairing values with their corresponding keys
+          // This is more robust than iterating keys and calling get(),
+          // and keeps ordering consistent between values and keyAt(index).
+          final values = notesBox.values.toList().cast<NoteModel>();
           final entries = <MapEntry<dynamic, NoteModel>>[];
-          for (final k in allKeys) {
-            final n = notesBox.get(k);
-            if (n != null) entries.add(MapEntry(k, n));
+          for (var i = 0; i < values.length; i++) {
+            final key = notesBox.keyAt(i);
+            entries.add(MapEntry(key, values[i]));
           }
 
           // filter
@@ -128,16 +129,20 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
 
-          return ListView.separated(
+          // Use a builder that ensures each list item gets a fixed vertical
+          // padding and the Dismissible/NoteTile has intrinsic height.
+          return ListView.builder(
             padding: const EdgeInsets.all(12),
             itemCount: filtered.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final entry = filtered[index];
               final key = entry.key as int;
               final note = entry.value;
 
-              return _buildDismissibleNote(context, key, note);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: _buildDismissibleNote(context, key, note),
+              );
             },
           );
         },
